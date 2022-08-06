@@ -128,9 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# Credentials
-/auth
-
-# Videos
-/upload
-/done
+/videos
+/templates
+token.txt

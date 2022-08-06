@@ -1,16 +1,21 @@
 # Start.gg API Wrapper
-from dataclasses import dataclass
+from math import ceil
 import requests
+from rich.console import Console, ConsoleOptions, RenderResult
 import utils
 from functools import cache
+from rich.tree import Tree
+from rich import print
+import rich.repr
+from prompt_toolkit.completion import FuzzyWordCompleter
 
 API_URL = r'https://api.start.gg/gql/alpha'
 CHARACTER_API_URL = r'https://api.smash.gg/characters?videogameId='
 
-with open('./auth/startggtoken.txt', 'r') as f:
+with open(utils.API_TOKEN_PATH, 'r') as f:
     apiToken = f.read()
 
-# Character Data
+
 class CharImage:
     id: int
     width: int
@@ -25,12 +30,13 @@ class CharImage:
         self.type = image['type']
         self.url = image['url']
 
+
 class Character:
     id: int
     name: str
     images: list[CharImage]
 
-    def __init__(self, char):
+    def __init__(self, char) -> None:
         self.id = char['id']
         self.name = char['name']
         self.images = [CharImage(i) for i in char['images']]
@@ -38,58 +44,77 @@ class Character:
     def __repr__(self) -> str:
         return self.name
 
+
 class VideoGame:
     id: int
     name: str
     characters: list[Character]
+    characterCompleter: FuzzyWordCompleter
 
     def __init__(self, id, name) -> None:
         self.id = id
         self.name = name
-        self.characters = self.get_game_characters(id)
+        self.characters = self.get_game_characters()
+        self.characterCompleter = FuzzyWordCompleter(words=[c.name for c in self.characters])
 
     def __repr__(self) -> str:
         return self.name
 
-    @cache    
-    def get_game_characters(self, gameId: int) -> list[Character]:
-        url = f'{CHARACTER_API_URL}{gameId}'
+    @cache
+    def get_game_characters(self) -> list[Character]:
+        url = f'{CHARACTER_API_URL}{self.id}'
         res = requests.get(url).json()['entities']['character']
         characters = [Character(c) for c in res]
         return characters
 
     @cache
-    def get_character(self, id: int):
-        return next((c for c in self.characters if c.id == id), None)
+    def get_character(self, id: int = None, name: str = '') -> Character:
+        char = next((c for c in self.characters if c.id ==
+                    id or c.name.lower() == name.lower()), None)
+        if not char:
+            raise utils.CharacterNotFoundError(
+                f'Character not found: {id or ""}{name or ""}')
+        return char
 
-# Tournament Data
-@dataclass
+
 class Player:
     id: int
     name: str
     characters: list[Character]
+    videoGame: VideoGame
 
     def __init__(self, slots, games, videoGame: VideoGame) -> None:
         self.id = slots['entrant']['id']
         self.name = slots['entrant']['name']
+        self.videoGame = videoGame
 
         if games:
             selections = []
             for game in games:
-                for selection in game['selections']:
-                    char = {'id': selection['entrant']['id'], 'value': selection['selectionValue']}
-                    if char not in selections:
-                        selections.append(char)
+                if game['selections']:
+                    for selection in game['selections']:
+                        char = {'id': selection['entrant']['id'],
+                                'value': selection['selectionValue']}
+                        if char not in selections:
+                            selections.append(char)
 
-            self.characters = [videoGame.get_character(s['value']) for s in selections if s['id'] == self.id]
+            self.characters = [videoGame.get_character(
+                id=s['value']) for s in selections if s['id'] == self.id]
         else:
             self.characters = []
 
     def __repr__(self) -> str:
-        return f'{self.name}{self.print_chars()}'
+        return f'{self.name}{f" {self.print_chars()}" if self.characters else ""}'
 
-    def print_chars(self):
-        return f' ({", ".join([c.name for c in self.characters])})' if self.characters else ''
+    def print_chars(self) -> str:
+        return f'({", ".join([c.name for c in self.characters])})' if self.characters else ''
+
+    def try_set_chars(self, chars: str) -> None:
+        try:
+            self.characters = [self.videoGame.get_character(
+                name=c.strip()) for c in chars.split(';')]
+        except utils.CharacterNotFoundError as err:
+            print(err)
 
 
 class Set:
@@ -100,52 +125,38 @@ class Set:
 
     p1: int = 0
 
-    def __init__(self, data) -> None:
-        self.videoGame = VideoGame(data['event']['videogame']['id'], data['event']['videogame']['name'])
+    def __init__(self, data, game: VideoGame) -> None:
+        self.videoGame = game
         self.round = data['fullRoundText']
         self.roundShort = self.shorten_round(self.round)
-        self.players = [Player(s, data['games'], self.videoGame) for s in data['slots']]
+        self.players = [Player(s, data['games'], self.videoGame)
+                        for s in data['slots']]
 
     def __repr__(self) -> str:
-        return f'{self.roundShort} - {self.players[self.p1]} vs {self.players[1 - self.p1]}'
+        return f'[red]{self.players[self.p1]}[/red] vs [blue]{self.players[1 - self.p1]}[/blue]'
+
+    def __rich_repr__(self) -> rich.repr.Result:
+        yield f'[red]{self.players[self.p1]}[/red] vs [blue]{self.players[1 - self.p1]}[/blue]'
+
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        yield f'[red]{self.players[self.p1]}[/red] vs [blue]{self.players[1 - self.p1]}[/blue]'
 
     def shorten_round(self, round: str) -> str:
-        return round.replace(' ', '').replace('-', '').replace('Winners', 'W').replace('Losers', 'L').replace('Quarter', 'Q').replace('Semi', 'S').replace('Final', 'F').replace('Round', 'R')
+        return round.replace(' ', '').replace('-', '').replace('Winners', 'W').replace('Losers', 'L').replace('Quarter', 'Q').replace('Semi', 'S').replace('Grand', 'G').replace('Final', 'F').replace('Round', 'R').replace('Reset', ' Reset')
 
-class SetPage:
-    setCount: int
-    pages: int
-    page: int
-    perPage: int
-
-    sets: list[Set]
-
-    def __init__(self, data) -> None:
-        self.setCount = data['pageInfo']['total']
-        self.pages = data['pageInfo']['totalPages']
-        self.page = data['pageInfo']['page']
-        self.perPage = data['pageInfo']['perPage']
-
-        self.sets = [Set(s) for s in data['nodes']]
-
-    def __repr__(self) -> str:
-        return f'Page {self.page} / {self.pages} ({self.setCount} sets total)'
 
 class Phase:
     name: str
     numSeeds: int
+    numSets: int
+    game: VideoGame
+    sets: list[Set]
 
     setName: str = ''
 
     QUERY = '''query PhaseSets($id: ID!, $page: Int!) {
                 phase(id: $id) {
-                    sets(page: $page, perPage: 10, sortType: CALL_ORDER) {
-                        pageInfo{
-                            total
-                            totalPages
-                            page
-                            perPage
-                        }
+                    sets(page: $page, perPage: 40, sortType: CALL_ORDER) {
                         nodes {
                             event {
                                 videogame {
@@ -173,18 +184,33 @@ class Phase:
                 }
             }'''
 
-    def __init__(self, data) -> None:
+    def __init__(self, data, game: VideoGame) -> None:
         self.id = data['id']
         self.name = data['name']
         self.numSeeds = data['numSeeds']
+        self.numSets = data['sets']['pageInfo']['total']
+        self.game = game
+        self.sets = self.get_sets()
 
     def __repr__(self) -> str:
-        return f'{self.name} ({self.numSeeds} entrants)'
+        return f'{self.name} ({self.numSeeds} entrants) ({self.numSets} sets)'
+        
+    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+        yield f'{self.name} ({self.numSeeds} entrants) ({self.numSets} sets)'
 
     @cache
-    def get_sets(self, page: int):
-        data = requests.post(API_URL, headers={'Authorization': f'Bearer {apiToken}'}, json={'query': Phase.QUERY, 'variables': {'id': self.id, 'page': page}}).json()['data']['phase']['sets']
-        return SetPage(data)
+    def get_sets(self) -> list[Set]:
+        # print(f'Getting sets for {self}')
+        sets = []
+        for page in range(ceil(self.numSets / 40)):
+            data = requests.post(API_URL, headers={'Authorization': f'Bearer {apiToken}'}, json={
+                'query': Phase.QUERY, 'variables': {'id': self.id, 'page': page+1}}).json()['data']['phase']['sets']
+            sets.extend([Set(s, self.game) for s in data['nodes']])
+        sets.reverse()
+        # print('Done!')
+
+        return sets
+
 
 class Event:
     name: str
@@ -195,11 +221,16 @@ class Event:
 
     def __init__(self, data) -> None:
         self.name = data['name']
-        self.game = VideoGame(data['videogame']['id'], data['videogame']['name'])
-        self.phases = [Phase(p) for p in data['phases']]
+        self.game = VideoGame(data['videogame']['id'],
+                              data['videogame']['name'])
+        self.phases = [Phase(p, self.game) for p in data['phases']]
 
     def __repr__(self) -> str:
         return f'{self.name} - {self.game} ({len(self.phases)} phases)'
+
+    def __rich_console__(self, console: Console, options: ConsoleOptions):
+        yield f'{self.name} - {self.game} ({len(self.phases)} phases)'
+
 
 class Tournament:
     name: str
@@ -207,6 +238,7 @@ class Tournament:
     shortSlug: str
     url: str
     events: list[Event]
+    tree: Tree
 
     setName: str = ''
     shortName: str = ''
@@ -226,7 +258,12 @@ class Tournament:
                             phases {
                               id
                               name
-                              numSeeds                                
+                              numSeeds
+                              sets {
+                                pageInfo {
+                                    total
+                                }
+                              }
                             }
                         }
                     }
@@ -239,13 +276,53 @@ class Tournament:
         self.shortSlug = data['shortSlug']
         self.url = data["url"]
         self.events = [Event(e) for e in data['events']]
+        self.build_tree()
 
     def __repr__(self) -> str:
         return self.name
 
+    def __rich_console__(self, console: Console, options: ConsoleOptions):
+        yield self.name
+
     @cache
-    def query(self, slug: str):
-        data = requests.post(API_URL, headers={'Authorization': f'Bearer {apiToken}'}, json={'query': Tournament.QUERY, 'variables': {'slug': slug}}).json()['data']['tournament']
+    def query(self, slug: str) -> dict:
+        data = requests.post(API_URL, headers={'Authorization': f'Bearer {apiToken}'}, json={
+                             'query': Tournament.QUERY, 'variables': {'slug': slug}}).json()['data']['tournament']
         if not data:
             raise utils.TournamentNotFoundError('Tournament not found')
         return data
+
+    def build_tree(self):
+        tournamentTree = Tree(self.name)
+        for ei, e in enumerate(self.events):
+            eventTree = tournamentTree.add(f'[green]\[{ei}.x.x][/green] {e}')
+            for pi, p in enumerate(e.phases):
+                phaseTree = eventTree.add(f'[green]\[{ei}.{pi}.x][/green] {p}')
+                
+                rounds = {}
+                for si, s in enumerate(p.sets):
+                    if s.round not in rounds:
+                        rounds[s.round] = []
+                    
+                    rounds[s.round].append((si, s))
+
+                for r in rounds.keys():
+                    roundTree = phaseTree.add(r)
+                    for si, s in rounds[r]:
+                        roundTree.add(f'[green]\[{ei}.{pi}.{si}][/green] {s}')
+
+        self.tree = tournamentTree
+
+    def parse_index(self, id: str):
+        try: 
+            i = [i for i in map(int, id.split('.'))] 
+            yield self.events[i[0]]
+            yield self.events[i[0]].phases[i[1]]
+            yield self.events[i[0]].phases[i[1]].sets[i[2]]
+        except:
+            print(f'[red]:warning: Invalid set index: {id}[/red]')
+            return None
+
+if __name__ == '__main__':
+    tournament = Tournament('LoL60')
+    print(tournament.tree)
