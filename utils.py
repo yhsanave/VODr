@@ -1,5 +1,7 @@
+import json
 import re
 import os
+from functools import reduce
 
 VIDEO_FORMAT_REGEX = r'.*\.(?:MOV|MPEG-1|MPEG-2|MPEG4|MP4|MPG|AVI|WMV|MPEGPS|FLV|WEBM)$'
 TOURNAMENT_LINK_REGEX = r'https?:\/\/(?:www\.)?start\.gg(?:\/tournament)?\/(?:(?:(.+?)(?=\/))|(.+))'
@@ -41,6 +43,15 @@ def filter_videos(files: list[str]) -> list[str]:
 def file_name_safe(name: str) -> str:
     return name.replace('<', '').replace('>', '').replace(':', '').replace('"', '').replace('/', '%2F').replace('\\', '').replace('|', '').replace('?', '').replace('*', '')
 
+
+def export_code(vods) -> str:
+    filtered = filter(lambda v: v.processed, vods)
+    if filtered:
+        dicts = map(lambda v: v.export_dict(), filtered)
+        dict = reduce(lambda a, b: a | b, dicts)
+        return json.dumps(dict)
+    else:
+        return ''
 
 def leave() -> None:
     input('Press [Enter] to exit...')

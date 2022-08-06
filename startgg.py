@@ -1,13 +1,16 @@
 # Start.gg API Wrapper
-from math import ceil
+
 import requests
-from rich.console import Console, ConsoleOptions, RenderResult
-import utils
+from math import ceil
 from functools import cache
-from rich.tree import Tree
 from rich import print
-import rich.repr
+from rich.tree import Tree
+from rich.table import Table
+from rich.progress import track
+from rich.panel import Panel
 from prompt_toolkit.completion import FuzzyWordCompleter
+
+import utils
 
 API_URL = r'https://api.start.gg/gql/alpha'
 CHARACTER_API_URL = r'https://api.smash.gg/characters?videogameId='
@@ -55,7 +58,8 @@ class VideoGame:
         self.id = id
         self.name = name
         self.characters = self.get_game_characters()
-        self.characterCompleter = FuzzyWordCompleter(words=[c.name for c in self.characters])
+        self.characterCompleter = FuzzyWordCompleter(
+            words=[c.name for c in self.characters])
 
     def __repr__(self) -> str:
         return self.name
@@ -135,10 +139,10 @@ class Set:
     def __repr__(self) -> str:
         return f'[red]{self.players[self.p1]}[/red] vs [blue]{self.players[1 - self.p1]}[/blue]'
 
-    def __rich_repr__(self) -> rich.repr.Result:
+    def __rich_repr__(self):
         yield f'[red]{self.players[self.p1]}[/red] vs [blue]{self.players[1 - self.p1]}[/blue]'
 
-    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+    def __rich_console__(self, console, options):
         yield f'[red]{self.players[self.p1]}[/red] vs [blue]{self.players[1 - self.p1]}[/blue]'
 
     def shorten_round(self, round: str) -> str:
@@ -194,22 +198,20 @@ class Phase:
 
     def __repr__(self) -> str:
         return f'{self.name} ({self.numSeeds} entrants) ({self.numSets} sets)'
-        
-    def __rich_console__(self, console: Console, options: ConsoleOptions) -> RenderResult:
+
+    def __rich_console__(self, console, options):
         yield f'{self.name} ({self.numSeeds} entrants) ({self.numSets} sets)'
 
     @cache
     def get_sets(self) -> list[Set]:
-        # print(f'Getting sets for {self}')
         sets = []
-        for page in range(ceil(self.numSets / 40)):
+
+        for page in track(range(ceil(self.numSets / 40)), description='[white]Getting sets...', transient=True):
             data = requests.post(API_URL, headers={'Authorization': f'Bearer {apiToken}'}, json={
                 'query': Phase.QUERY, 'variables': {'id': self.id, 'page': page+1}}).json()['data']['phase']['sets']
             sets.extend([Set(s, self.game) for s in data['nodes']])
-        sets.reverse()
-        # print('Done!')
 
-        return sets
+        return [*reversed(sets)]
 
 
 class Event:
@@ -228,7 +230,7 @@ class Event:
     def __repr__(self) -> str:
         return f'{self.name} - {self.game} ({len(self.phases)} phases)'
 
-    def __rich_console__(self, console: Console, options: ConsoleOptions):
+    def __rich_console__(self, console, options):
         yield f'{self.name} - {self.game} ({len(self.phases)} phases)'
 
 
@@ -238,10 +240,9 @@ class Tournament:
     shortSlug: str
     url: str
     events: list[Event]
-    tree: Tree
 
-    setName: str = ''
-    shortName: str = ''
+    tree: Tree
+    shortName: str
 
     QUERY = '''query Tournament($slug: String!) {
                     tournament(slug: $slug){
@@ -276,52 +277,72 @@ class Tournament:
         self.shortSlug = data['shortSlug']
         self.url = data["url"]
         self.events = [Event(e) for e in data['events']]
+        self.shortName = self.shortSlug or None
         self.build_tree()
 
     def __repr__(self) -> str:
         return self.name
 
-    def __rich_console__(self, console: Console, options: ConsoleOptions):
+    def __rich_console__(self, console, options):
         yield self.name
 
     @cache
     def query(self, slug: str) -> dict:
+        print('[white]Getting tournament data... ', end='')
         data = requests.post(API_URL, headers={'Authorization': f'Bearer {apiToken}'}, json={
                              'query': Tournament.QUERY, 'variables': {'slug': slug}}).json()['data']['tournament']
         if not data:
             raise utils.TournamentNotFoundError('Tournament not found')
+        print('[green]Done!')
         return data
 
     def build_tree(self):
-        tournamentTree = Tree(self.name)
+        tournamentTreeFull = Tree(self.name)
+        tournamentTreeSmall = Tree(self.name, hide_root=True)
         for ei, e in enumerate(self.events):
-            eventTree = tournamentTree.add(f'[green]\[{ei}.x.x][/green] {e}')
+            eventTreeFull = tournamentTreeFull.add(f'[green]\[{ei}.x.x][/green] {e}')
+            eventTreeSmall = tournamentTreeSmall.add(f'[green]\[{ei}.x][/green] {e}')
             for pi, p in enumerate(e.phases):
-                phaseTree = eventTree.add(f'[green]\[{ei}.{pi}.x][/green] {p}')
-                
+                phaseTreeFull = eventTreeFull.add(f'[green]\[{ei}.{pi}.x][/green] {p}')
+                eventTreeSmall.add(f'[green]\[{ei}.{pi}][/green] {p}')
+
                 rounds = {}
                 for si, s in enumerate(p.sets):
                     if s.round not in rounds:
                         rounds[s.round] = []
-                    
+
                     rounds[s.round].append((si, s))
 
                 for r in rounds.keys():
-                    roundTree = phaseTree.add(r)
+                    roundTree = phaseTreeFull.add(r)
                     for si, s in rounds[r]:
                         roundTree.add(f'[green]\[{ei}.{pi}.{si}][/green] {s}')
 
-        self.tree = tournamentTree
+        self.tree = tournamentTreeFull
+        self.treeSmall = tournamentTreeSmall
 
     def parse_index(self, id: str):
-        try: 
-            i = [i for i in map(int, id.split('.'))] 
+        try:
+            i = [i for i in map(int, id.split('.'))]
             yield self.events[i[0]]
             yield self.events[i[0]].phases[i[1]]
             yield self.events[i[0]].phases[i[1]].sets[i[2]]
         except:
             print(f'[red]:warning: Invalid set index: {id}[/red]')
             return None
+
+    def summary_table(self):
+        grid = Table.grid(padding=(0, 1), expand=False)
+        grid.add_column(justify='right')
+        grid.add_column()
+
+        grid.add_row('[green]Name[/]:', self.name)
+        grid.add_row('[green]Short Name[/]:', self.shortName)
+        grid.add_row('[green]Link[/]:', f'https://start.gg/{self.url}')
+        grid.add_row('[green]Events[/]:', self.treeSmall)
+
+        return Panel(grid, title='Tournament', expand=False)
+
 
 if __name__ == '__main__':
     tournament = Tournament('LoL60')

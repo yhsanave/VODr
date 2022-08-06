@@ -1,14 +1,13 @@
-
-from functools import reduce
-import json
 import os
-from startgg import Tournament, Event, Phase, Set
 import utils
-from vod import VOD, ARGUMENTS_LIST as VOD_ARGS
+import pyperclip
 from rich import print
 from rich.prompt import Prompt, Confirm, IntPrompt
+from rich.panel import Panel
 from prompt_toolkit import prompt
-import pyperclip
+
+from vod import VOD, ARGUMENTS_LIST as VOD_ARGS
+from startgg import Tournament, Event, Phase, Set
 
 
 def main() -> None:
@@ -28,8 +27,41 @@ def main() -> None:
         try:
             slug = utils.parse_link(link)
             tournament = Tournament(slug)
-            tournament.shortName = Prompt.ask(
-                'Enter abbreviated tournament name')
+
+            while True:
+                print()
+                print(tournament.summary_table())
+                if Confirm.ask('Edit tournament info?'):
+                    which = Prompt.ask('Which value? (Enter nothing to exit)', default=None,
+                                       show_default=False, choices=['name', 'short', 'event'])
+                    if not which:
+                        continue
+
+                    if which == 'event':
+                        while True:
+                            id = Prompt.ask(
+                                'Enter [green]\[ID][/] (Enter nothing to exit)')
+                            if not id:
+                                break
+                            ids = id.split('.')
+                            try:
+                                if len(ids) == 1 or ids[1].strip().lower() == 'x':
+                                    tournament.events[int(ids[0])].name = Prompt.ask(
+                                        f'Enter name for event ({tournament.events[int(ids[0])].name})')
+                                else:
+                                    tournament.events[int(ids[0])].phases[int(ids[1])].name = Prompt.ask(
+                                        f'Enter name for phase ({tournament.events[int(ids[0])].phases[int(ids[1])].name})')
+                                tournament.build_tree()
+                            except:
+                                print(
+                                    f'[red]:warning: Invalid ID {".".join(ids)}')
+                                continue
+                    elif which == 'name':
+                        tournament.name = Prompt.ask('Enter tournament name')
+                    elif which == 'short':
+                        tournament.shortName = Prompt.ask('Enter short name')
+                else:
+                    break
         except (utils.InvalidLinkError):
             print(f'[red]Invalid link:[/red] {link}')
         except (utils.TournamentNotFoundError):
@@ -74,7 +106,7 @@ def main() -> None:
                 f'Selected {set.roundShort} - {set}. Is this correct?')
 
         if skip:
-            print(f'[yellow] Skipping video: {vod.filename}')
+            print(f'[yellow]Skipping video: {vod.filename}')
             continue
 
         # Check player order
@@ -107,12 +139,12 @@ def main() -> None:
             print()
             print(vod.summary_table())
             print()
-            if not Confirm.ask('Is this information correct?'):
+            if Confirm.ask('Edit VOD information?'):
                 while True:
                     print()
                     print(vod.edit_table())
                     print()
-                    index = IntPrompt.ask('Which value is incorrect? (Enter [green]0[/] to exit)', default=0,
+                    index = IntPrompt.ask('Which value? (Enter [green]0[/] to exit)', default=0,
                                           show_choices=False, show_default=False, choices=[str(i) for i in range(len(VOD_ARGS)+1)])
                     if index == 0:
                         break
@@ -122,11 +154,23 @@ def main() -> None:
             else:
                 break
 
-    exportVods = reduce(lambda a, b: a | b, map(
-        lambda v: v.export_dict(), vods))
-    pyperclip.copy(json.dumps(exportVods))
-    print('[green]Export code copied to clipboard')
+        vod.processed = True
+
+    exportCode = utils.export_code(vods)
+
+    if exportCode:
+        pyperclip.copy(exportCode)
+        print('[green]:white_check_mark: Export code copied to clipboard')
+
+        with open('export.json', 'w') as f:
+            f.write(exportCode)
+            print(
+                f'[green]:white_check_mark: Export code saved to [link={os.path.abspath("export.json")}]export.json[/]')
+    else:
+        print('[yellow]No VODs processed, skipping export')
+
     utils.leave()
+
 
 if __name__ == "__main__":
     main()

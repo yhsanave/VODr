@@ -40,11 +40,11 @@ class TemplateArgs:
     player2Chars: str = '(Sonic, Yoshi, Steve)'
 
     def __init__(self, tournament: startgg.Tournament, event: startgg.Event, phase: startgg.Phase, set: startgg.Set) -> None:
-        self.tournamentName = tournament.setName if tournament.setName else tournament.name
+        self.tournamentName = tournament.name
         self.tournamentShort = tournament.shortName
         self.tournamentLink = f'https://start.gg{tournament.url}'
-        self.eventName = event.setName if event.setName else event.name
-        self.phaseName = phase.setName if phase.setName else phase.name
+        self.eventName = event.name
+        self.phaseName = phase.name
         self.roundFull = set.round
         self.roundShort = set.roundShort
         self.game = event.game.name

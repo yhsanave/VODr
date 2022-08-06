@@ -1,11 +1,11 @@
 import os
+from rich import print
+from rich.panel import Panel
+from rich.table import Table
+
 import startgg
 import utils
 import templates
-from rich import print
-from rich.console import Console, ConsoleOptions
-from rich.panel import Panel
-from rich.table import Table
 
 ARGUMENTS_LIST = ['Tournament', 'Tournament Short', 'Link', 'Event', 'Phase', 'Round',
                   'Round Short', 'Game', 'Player 1', 'Player 2', 'Player 1 Characters', 'Player 2 Characters']
@@ -14,6 +14,7 @@ ARGUMENTS_LIST = ['Tournament', 'Tournament Short', 'Link', 'Event', 'Phase', 'R
 class VOD:
     filename: str
     path: str
+    processed: bool = False
 
     tournament: startgg.Tournament = None
     event: startgg.Event = None
@@ -36,7 +37,7 @@ class VOD:
         yield 'Title', self.title
         yield 'Description', self.description
 
-    def __rich_console__(self, console: Console, options: ConsoleOptions):
+    def __rich_console__(self, console, options):
         yield 'Tournament', self.tournament
         yield 'Event', self.event
         yield 'Phase', self.phase
@@ -136,7 +137,7 @@ class VOD:
 
     def open_video(self) -> None:
         if os.path.exists(self.path):
-            print(f'Opening Video: {self.filename}')
+            print(f'Opening Video: [underline link={os.path.abspath(self.path)}]{self.filename}[/]')
             os.startfile(self.path)
         else:
             print(f'Video not found: {self.path}')

@@ -1,0 +1,5 @@
+prompt-toolkit==3.0.30
+pyperclip==1.8.2
+requests==2.28.1
+rich==12.5.1
+regex>=2022.7.25
