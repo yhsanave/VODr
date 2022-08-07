@@ -12,12 +12,20 @@ from prompt_toolkit.completion import FuzzyWordCompleter
 
 import utils
 
+utils.check_files()
+
 API_URL = r'https://api.start.gg/gql/alpha'
 CHARACTER_API_URL = r'https://api.smash.gg/characters?videogameId='
 
-with open(utils.API_TOKEN_PATH, 'r') as f:
-    apiToken = f.read()
-
+try:
+    with open(utils.API_TOKEN_PATH, 'r') as f:
+        apiToken = f.read()
+    if not apiToken:
+        raise
+except:
+    open('token.txt', 'w').close()
+    print('[red]No start.gg api key found. Paste your api key into token.txt')
+    utils.leave()
 
 class CharImage:
     id: int

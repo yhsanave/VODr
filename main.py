@@ -3,21 +3,18 @@ import utils
 import pyperclip
 from rich import print
 from rich.prompt import Prompt, Confirm, IntPrompt
-from rich.panel import Panel
 from prompt_toolkit import prompt
 
 from vod import VOD, ARGUMENTS_LIST as VOD_ARGS
 from startgg import Tournament, Event, Phase, Set
 
+utils.check_files()
 
 def main() -> None:
-    if not utils.check_files():
-        utils.leave()
-
     # Get videos from ./videos
     vods = [VOD(f) for f in utils.filter_videos(os.listdir(utils.VIDEOS_PATH))]
     if not vods:
-        print('No videos found, please place videos in /videos.')
+        print('[red]No videos found, please place videos in /videos.')
         utils.leave()
 
     # Get startgg tournament

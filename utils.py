@@ -2,6 +2,8 @@ import json
 import re
 import os
 from functools import reduce
+from rich import print
+import sys
 
 VIDEO_FORMAT_REGEX = r'.*\.(?:MOV|MPEG-1|MPEG-2|MPEG4|MP4|MPG|AVI|WMV|MPEGPS|FLV|WEBM)$'
 TOURNAMENT_LINK_REGEX = r'https?:\/\/(?:www\.)?start\.gg(?:\/tournament)?\/(?:(?:(.+?)(?=\/))|(.+))'
@@ -55,7 +57,7 @@ def export_code(vods) -> str:
 
 def leave() -> None:
     input('Press [Enter] to exit...')
-    exit()
+    sys.exit()
 
 
 def check_files() -> bool:
@@ -69,17 +71,14 @@ def check_files() -> bool:
     if not os.path.exists(os.path.join(TEMPLATES_PATH, 'title.txt')):
         with open(os.path.join(TEMPLATES_PATH, 'title.txt'), 'w') as f:
             f.write(DEFAULT_TITLE_TEMPLATE)
-            print('Using default title template. Set a custom template in templates/title.txt. See the README for syntax help.')
+            print('[yellow]Using default title template. Set a custom template in templates/title.txt. See the README for syntax help.')
     if not os.path.exists(os.path.join(TEMPLATES_PATH, 'description.txt')):
         with open(os.path.join(TEMPLATES_PATH, 'description.txt'), 'w') as f:
             f.write(DEFAULT_DESCRIPTION_TEMPLATE)
-            print('Using default description template. Set a custom template in templates/description.txt. See the README for syntax help.')
+            print('[yellow]Using default description template. Set a custom template in templates/description.txt. See the README for syntax help.')
 
     # Check for startgg token
     if not os.path.exists(API_TOKEN_PATH):
-        with open(API_TOKEN_PATH, 'x'):
-            print(
-                'Start.gg API token not found. Please paste your start.gg token into token.txt')
-            return False
-
-    return True
+        with open(API_TOKEN_PATH, 'w'):
+            print('[red]Start.gg API token not found. Please paste your start.gg token into token.txt')
+            leave()

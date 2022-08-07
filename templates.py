@@ -1,4 +1,7 @@
 import startgg
+from utils import check_files
+
+check_files()
 
 with open('./templates/title.txt', 'r') as template:
     TITLE_TEMPLATE = template.read()
