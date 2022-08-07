@@ -4,7 +4,7 @@ Simple tool for labelling tournament vods to upload to YouTube using the [start.
 
 ## Setup 
 
-Download the latest version from the releases page. Run it once to generate all of the files and folders. You will need to generate a start.gg API key; instructions to do so can be found [here](https://developer.smash.gg/docs/authentication). Once generated, copy it and paste it into `token.txt`. You will also need to install the `userscript.js` with a userscript manager like [TamperMonkey](https://www.tampermonkey.net/).
+Download the latest version from the releases page. Run it once to generate all of the files and folders. You will need to generate a start.gg API key; instructions to do so can be found [here](https://developer.smash.gg/docs/authentication). Once generated, copy it and paste it into `token.txt`. You will also need to install the [userscript.js](https://raw.githubusercontent.com/yhsanave/VODr/main/userscript.js) with a userscript manager like [TamperMonkey](https://www.tampermonkey.net/).
 
 ## Usage
 
