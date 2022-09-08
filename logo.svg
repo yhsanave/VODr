@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="640"
+	height="640" viewBox="0 0 640 640" xml:space="preserve">
+	<g transform="matrix(1.5 0 0 1.5 336.92 306.65)" id="bfBN2badUlv8B2wr5tPKk">
+		<filter id="SVGID_249" y="-24%" height="148%" x="-24%" width="148%">
+			<feGaussianBlur in="SourceAlpha" stdDeviation="5"></feGaussianBlur>
+			<feOffset dx="5" dy="6" result="oBlur"></feOffset>
+			<feFlood flood-color="rgb(0,0,0)" flood-opacity="0.5" />
+			<feComposite in2="oBlur" operator="in" />
+			<feMerge>
+				<feMergeNode></feMergeNode>
+				<feMergeNode in="SourceGraphic"></feMergeNode>
+			</feMerge>
+		</filter>
+		<path
+			style="stroke: rgb(0,0,0); stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,0,0); fill-rule: nonzero; opacity: 1;filter: url(#SVGID_249);"
+			vector-effect="non-scaling-stroke" transform=" translate(0, 0)"
+			d="M -171.25749 -162.27545 L -111.97604999999999 -198.20359000000002 L 171.25748 -34.73054000000002 L 171.25748 34.13173999999998 L -111.97604999999999 198.20359999999997 L -171.25749 163.47305999999998 z"
+			stroke-linecap="round" />
+	</g>
+	<g transform="matrix(1.24 0 0 1.24 326.93 407.13)" id="OEGTwWEMl4yF9cdkm4c42">
+		<path
+			style="stroke: rgb(0,0,0); stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;"
+			vector-effect="non-scaling-stroke" transform=" translate(0, 0)"
+			d="M 171.25749 -116.48953 L -171.25748000000002 81.70505 L -111.81963000000002 116.48953 L 171.25748999999996 -47.686469999999986 z"
+			stroke-linecap="round" />
+	</g>
+	<g transform="matrix(-0.62 -1.08 -1.08 0.62 170.39 315.62)" id="UR4BiRpWNKbhk0Ei23lyB">
+		<path
+			style="stroke: rgb(0,0,0); stroke-width: 0; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;"
+			vector-effect="non-scaling-stroke" transform=" translate(0, 0)"
+			d="M 171.25749 -116.48953 L -171.25748000000002 81.70505 L -111.81963000000002 116.48953 L 171.25748999999996 -47.686469999999986 z"
+			stroke-linecap="round" />
+	</g>
+</svg>
