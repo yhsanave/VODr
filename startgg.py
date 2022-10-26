@@ -141,8 +141,12 @@ class Set:
         self.videoGame = game
         self.round = data['fullRoundText']
         self.roundShort = self.shorten_round(self.round)
-        self.players = [Player(s, data['games'], self.videoGame)
+        try:
+            self.players = [Player(s, data['games'], self.videoGame)
                         for s in data['slots']]
+        except TypeError: 
+            # If tournament isn't complete, fill empty sets with a default value instead of crashing
+            self.players = [Player({'entrant': {'id': 'None', 'name': 'None'}}, None, self.videoGame) for _ in range(2)]
 
     def __repr__(self) -> str:
         return f'[red]{self.players[self.p1]}[/red] vs [blue]{self.players[1 - self.p1]}[/blue]'
