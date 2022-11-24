@@ -112,7 +112,7 @@ def main() -> None:
 
         # Check for missing characters and prompt to manually add them
         for player in set.players:
-            if not player.characters:
+            if not player.characters and set.videoGame.characters:
                 if Confirm.ask(f'No character data found for {player.name}. Manually enter characers?'):
                     chars = []
                     while not chars:

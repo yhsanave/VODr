@@ -1,4 +1,4 @@
-# VODr
+# ![VODr Logo](./logo/logo-inline.min.svg) VODr
 
 Simple tool for labelling tournament vods to upload to YouTube using the [start.gg](https://start.gg) API for set data. I designed this tool to work with vods recorded using the [AverMedia Live Gamer Portable 2 Plus](https://www.avermedia.com/us/product-detail/GC513), since I bring a few to tournaments I go to and there isn't a way to have it label the vods, but it should work with any vods (though if you're uploading stream vods there are better tools out there for managing that process, such as [Streameta](https://streameta.com/)).
 

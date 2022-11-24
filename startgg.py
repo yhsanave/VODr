@@ -75,7 +75,11 @@ class VideoGame:
     @cache
     def get_game_characters(self) -> list[Character]:
         url = f'{CHARACTER_API_URL}{self.id}'
-        res = requests.get(url).json()['entities']['character']
+        try:
+            res = requests.get(url).json()['entities']['character']
+        except:
+            print(f'[yellow]No characters found for {self.name}')
+            res = []
         characters = [Character(c) for c in res]
         return characters
 
@@ -219,8 +223,12 @@ class Phase:
         sets = []
 
         for page in track(range(ceil(self.numSets / 40)), description='[white]Getting sets...', transient=True):
-            data = requests.post(API_URL, headers={'Authorization': f'Bearer {apiToken}'}, json={
-                'query': Phase.QUERY, 'variables': {'id': self.id, 'page': page+1}}).json()['data']['phase']['sets']
+            try:
+                data = requests.post(API_URL, headers={'Authorization': f'Bearer {apiToken}'}, json={
+                    'query': Phase.QUERY, 'variables': {'id': self.id, 'page': page+1}}).json()['data']['phase']['sets']
+            except:
+                print(f'[yellow]No sets found for phase {self.name}')
+                data = {'nodes': []}
             sets.extend([Set(s, self.game) for s in data['nodes']])
 
         return [*reversed(sets)]
@@ -340,7 +348,7 @@ class Tournament:
             yield self.events[i[0]].phases[i[1]]
             yield self.events[i[0]].phases[i[1]].sets[i[2]]
         except:
-            print(f'[red]:warning: Invalid set index: {id}[/red]')
+            print(f'[red]:warning: Invalid set index: {id}')
             return None
 
     def summary_table(self):

@@ -1,4 +1,4 @@
-import startgg
+import startgg, re
 from utils import check_files
 
 check_files()
@@ -27,6 +27,7 @@ PLAYER_2 = r'%P2'
 PLAYER_1_CHARS = r'%P1Chars'
 PLAYER_2_CHARS = r'%P2Chars'
 
+COLLAPSE_WS_REGEX = re.compile(r' +')
 
 class TemplateArgs:
     tournamentName: str = 'Default Tournament'
@@ -58,4 +59,4 @@ class TemplateArgs:
 
 
 def parse(template: str, args: TemplateArgs) -> str:
-    return template.replace(TOURNAMENT_SHORT, args.tournamentShort).replace(TOURNAMENT_NAME, args.tournamentName).replace(TOURNAMENT_SHORT, args.tournamentShort).replace(TOURNAMENT_LINK, args.tournamentLink).replace(EVENT_NAME, args.eventName).replace(PHASE_NAME, args.phaseName).replace(GAME, args.game).replace(ROUND_FULL, args.roundFull).replace(ROUND_SHORT, args.roundShort).replace(PLAYER_1_CHARS, args.player1Chars).replace(PLAYER_2_CHARS, args.player2Chars).replace(PLAYER_1, args.player1).replace(PLAYER_2, args.player2)
+    return COLLAPSE_WS_REGEX.sub(' ', template.replace(TOURNAMENT_SHORT, args.tournamentShort).replace(TOURNAMENT_NAME, args.tournamentName).replace(TOURNAMENT_SHORT, args.tournamentShort).replace(TOURNAMENT_LINK, args.tournamentLink).replace(EVENT_NAME, args.eventName).replace(PHASE_NAME, args.phaseName).replace(GAME, args.game).replace(ROUND_FULL, args.roundFull).replace(ROUND_SHORT, args.roundShort).replace(PLAYER_1_CHARS, args.player1Chars).replace(PLAYER_2_CHARS, args.player2Chars).replace(PLAYER_1, args.player1).replace(PLAYER_2, args.player2))
