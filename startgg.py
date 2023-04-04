@@ -176,7 +176,7 @@ class Phase:
 
     QUERY = '''query PhaseSets($id: ID!, $page: Int!) {
                 phase(id: $id) {
-                    sets(page: $page, perPage: 40, sortType: CALL_ORDER) {
+                    sets(page: $page, perPage: 30, sortType: CALL_ORDER) {
                         nodes {
                             event {
                                 videogame {
@@ -222,7 +222,7 @@ class Phase:
     def get_sets(self) -> list[Set]:
         sets = []
 
-        for page in track(range(ceil(self.numSets / 40)), description='[white]Getting sets...', transient=True):
+        for page in track(range(ceil(self.numSets / 30)), description='[white]Getting sets...', transient=True):
             try:
                 data = requests.post(API_URL, headers={'Authorization': f'Bearer {apiToken}'}, json={
                     'query': Phase.QUERY, 'variables': {'id': self.id, 'page': page+1}}).json()['data']['phase']['sets']
@@ -365,5 +365,5 @@ class Tournament:
 
 
 if __name__ == '__main__':
-    tournament = Tournament('LoL60')
+    tournament = Tournament('the-laffy-invitational-3')
     print(tournament.tree)
